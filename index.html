@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#a8172f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="description" content="เกมบิงโก 75 ลูก สำหรับผู้เล่นและผู้ดำเนินเกม">
+  <title>BINGO • เกมบิงโก</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="brand" href="./index.html" aria-label="บิงโก หน้าหลัก"><span class="logo" aria-hidden="true">✦</span>BINGO<span class="brand-dot">.</span></a>
+      <span class="edition">บิงโก 75 ลูก</span>
+    </div>
+  </header>
+  <main>
+    <nav class="mode-picker" aria-label="โหมดการเล่น">
+      <button type="button" id="player-mode" aria-controls="player" aria-pressed="true">ผู้เล่น</button>
+      <button type="button" id="host-mode" aria-controls="host" aria-pressed="false">ผู้ดำเนินเกม</button>
+    </nav>
+    <section id="player" aria-labelledby="player-title">
+      <header class="section-head">
+        <h1 id="player-title">บัตรบิงโก</h1>
+        <p>แตะเลขที่ถูกเรียก ให้ครบ 5 ช่องในแนวเดียวกัน</p>
+      </header>
+      <div class="card">
+        <div class="letters" aria-hidden="true"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
+        <div id="board" class="board" role="group" aria-label="บัตรบิงโก 5 คูณ 5"></div>
+      </div>
+      <p class="card-status" id="card-status" role="status"></p>
+      <div class="actions">
+        <button type="button" class="primary" id="new-card">สุ่มบัตรใหม่</button>
+        <button type="button" class="secondary" id="clear-marks">ล้างเครื่องหมาย</button>
+      </div>
+    </section>
+    <section id="host" aria-labelledby="host-title" hidden>
+      <header class="section-head">
+        <h1 id="host-title">สุ่มเลขบิงโก</h1>
+        <p>สุ่มทีละลูกจาก 1–75 แล้วประกาศให้ผู้เล่น</p>
+      </header>
+      <div class="draw-card">
+        <span>เลขล่าสุด</span>
+        <output id="latest" aria-live="polite" aria-atomic="true">—</output>
+        <p id="draw-count"></p>
+      </div>
+      <div class="actions">
+        <button type="button" class="primary" id="draw">สุ่มเลขถัดไป</button>
+        <button type="button" class="secondary" id="reset-draw">เริ่มรอบใหม่</button>
+      </div>
+      <div class="audio-options">
+        <label><input type="checkbox" id="voice"> อ่านเลขอัตโนมัติ</label>
+        <button type="button" class="text-button" id="repeat">อ่านเลขล่าสุด</button>
+      </div>
+      <p id="voice-status" role="status" hidden></p>
+      <section class="history-panel" aria-labelledby="history-title">
+        <h2 id="history-title">ประวัติการสุ่ม</h2>
+        <p id="history-empty">เลขที่สุ่มแล้วจะแสดงที่นี่ โดยเรียงจากล่าสุด</p>
+        <ol id="history" aria-label="เลขที่สุ่มจากล่าสุดไปเก่าสุด"></ol>
+      </section>
+    </section>
+    <footer>
+      <p id="storage-status">บันทึกการเล่นบนอุปกรณ์นี้โดยอัตโนมัติ</p>
+      <details>
+        <summary>วิธีเล่นและติดตั้ง</summary>
+        <p>ผู้เล่นแตะเลขเพื่อทำหรือลบเครื่องหมาย ช่อง FREE นับให้ทันที เมื่อครบแถว คอลัมน์ หรือแนวทแยง ระบบจะแจ้ง BINGO</p>
+        <p>ผู้ดำเนินเกมใช้เครื่องเดียวสุ่มเลขและประกาศให้ทุกคน ผู้เล่นเปิดบัตรบนเครื่องของตนแล้วแตะเลขตามที่ได้ยิน</p>
+        <p>จากลิงก์ HTTPS บน iPhone หรือ iPad ให้เปิดใน Safari แล้วเลือก แชร์ → เพิ่มไปยังหน้าจอโฮม → เปิดเป็นเว็บแอป (ถ้ามี) → เพิ่ม บน Android ให้เปิดใน Chrome แล้วเลือก ⋮ → เพิ่มลงในหน้าจอหลัก → ติดตั้ง</p>
+      </details>
+    </footer>
+  </main>
+</body>
+</html>

@@ -19,9 +19,11 @@ const byId = id => document.getElementById(id);
 const synth = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
   ? window.speechSynthesis
   : null;
-const markSound = new Audio('./mark.wav');
+const AudioContext = window.AudioContext || window.webkitAudioContext;
 const bingoSound = new Audio('./bingo.wav');
-markSound.preload = bingoSound.preload = 'auto';
+bingoSound.preload = 'auto';
+let audioContext;
+let bingoBuffer;
 let speechRequest = 0;
 let storageAvailable = true;
 
@@ -123,21 +125,31 @@ function renderBoard() {
     return cell;
   });
   byId('board').replaceChildren(...cells);
+  byId('host-board').replaceChildren(...cells.map(cell => {
+    const preview = document.createElement('span');
+    preview.className = cell.className;
+    preview.textContent = cell.textContent;
+    return preview;
+  }));
   renderMarks();
 }
 
 function renderMarks() {
   const wins = patterns.filter(line => line.every(index => index === freeIndex || state.marks.has(index)));
   const winningCells = new Set(wins.flat());
-  Array.from(byId('board').children).forEach((cell, index) => {
-    if (index !== freeIndex) cell.setAttribute('aria-pressed', state.marks.has(index));
-    cell.classList.toggle('winning', winningCells.has(index));
-  });
+  for (const board of ['board', 'host-board']) {
+    Array.from(byId(board).children).forEach((cell, index) => {
+      const marked = state.marks.has(index);
+      if (board === 'board' && index !== freeIndex) cell.setAttribute('aria-pressed', marked);
+      cell.classList.toggle('marked', marked);
+      cell.classList.toggle('winning', winningCells.has(index));
+    });
+  }
   const won = wins.length > 0;
   const status = byId('card-status');
   const hostStatus = byId('host-card-status');
   status.classList.toggle('won', won);
-  hostStatus.hidden = !won;
+  byId('host-win').hidden = !won;
   const message = won ? 'BINGO!'
     : 'ทำเครื่องหมายแล้ว ' + (state.marks.size + 1) + ' จาก 25 ช่อง (รวม FREE)';
   if (status.textContent !== message) status.textContent = message;
@@ -146,14 +158,79 @@ function renderMarks() {
   return won;
 }
 
-function markCell(index) {
-  if (state.marks.has(index)) return;
+function prepareAudio() {
+  if (!AudioContext) return;
+  if (!audioContext) {
+    try {
+      audioContext = new AudioContext();
+    } catch {
+      return;
+    }
+    bingoBuffer = fetch('./bingo.wav')
+      .then(response => {
+        if (!response.ok) throw new Error('Bingo audio unavailable');
+        return response.arrayBuffer();
+      })
+      .then(bytes => audioContext.decodeAudioData(bytes))
+      .catch(() => null);
+  }
+  return audioContext.resume().then(() => audioContext.state === 'running', () => false);
+}
+
+function playTap() {
+  const start = audioContext.currentTime;
+  const envelope = audioContext.createGain();
+  envelope.gain.setValueAtTime(0.001, start);
+  envelope.gain.exponentialRampToValueAtTime(0.42, start + 0.003);
+  envelope.gain.exponentialRampToValueAtTime(0.001, start + 0.17);
+  envelope.connect(audioContext.destination);
+  const oscillator = audioContext.createOscillator();
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(620, start);
+  oscillator.frequency.exponentialRampToValueAtTime(170, start + 0.15);
+  oscillator.connect(envelope);
+  oscillator.start(start);
+  oscillator.stop(start + 0.18);
+}
+
+function playGameSound(announce = false, ready = prepareAudio()) {
+  if (!ready) {
+    const sound = announce ? bingoSound : new Audio('./mark.wav');
+    sound.currentTime = 0;
+    void sound.play().catch(() => {});
+    return;
+  }
+  void ready.then(async running => {
+    if (running) {
+      playTap();
+      if (!announce) return;
+      const buffer = await bingoBuffer;
+      if (buffer) {
+        const source = audioContext.createBufferSource();
+        source.buffer = buffer;
+        source.connect(audioContext.destination);
+        source.start(audioContext.currentTime + 0.16, 0.2);
+        return;
+      }
+    }
+    if (announce && synth) {
+      const utterance = new SpeechSynthesisUtterance('บิงโก');
+      utterance.lang = 'th-TH';
+      synth.speak(utterance);
+    }
+  });
+}
+
+function markCell(index, ready) {
+  if (state.marks.has(index)) {
+    playGameSound(false, ready);
+    return false;
+  }
   state.marks.add(index);
   const announce = renderMarks() && !state.announcedBingo;
   if (announce) state.announcedBingo = true;
-  const sound = announce ? bingoSound : markSound;
-  sound.currentTime = 0;
-  void sound.play().catch(() => {});
+  playGameSound(announce, ready);
+  return announce;
 }
 
 function letterIndex(number) {
@@ -256,6 +333,7 @@ byId('clear-marks').addEventListener('click', () => {
 });
 
 function drawNext() {
+  const ready = prepareAudio();
   const drawn = new Set(state.draws);
   const available = Array.from({ length: ballCount }, (_, i) => i + 1).filter(n => !drawn.has(n));
   if (available.length === 0) return;
@@ -263,13 +341,15 @@ function drawNext() {
   state.draws.push(number);
   renderHost();
   const index = state.card.indexOf(number);
-  if (index !== -1) markCell(index);
+  const announce = index !== -1 && markCell(index, ready);
   save();
-  if (state.voice) speak(number);
+  if (announce) stopSpeech();
+  else if (state.voice) speak(number);
 }
 
 byId('draw').addEventListener('click', drawNext);
 byId('player-draw').addEventListener('click', drawNext);
+byId('test-sound').addEventListener('click', () => playGameSound());
 
 byId('reset-draw').addEventListener('click', () => {
   if (!window.confirm('เริ่มรอบใหม่และล้างประวัติการสุ่มกับเครื่องหมายบนบัตรหรือไม่?')) return;

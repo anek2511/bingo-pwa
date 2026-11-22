@@ -7,11 +7,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="description" content="เกมบิงโก 75 ลูก สำหรับผู้เล่นและผู้ดำเนินเกม">
   <title>BINGO • เกมบิงโก</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=3">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon-192.png">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="app.js" defer></script>
+  <script src="app.js?v=3" defer></script>
 </head>
 <body>
   <header class="masthead">
@@ -58,7 +58,12 @@
         <button type="button" class="primary" id="draw">สุ่มเลขถัดไป</button>
         <button type="button" class="secondary" id="reset-draw">เริ่มรอบใหม่</button>
       </div>
-      <p id="host-card-status" class="card-status won" role="status" hidden></p>
+      <div id="host-win" hidden>
+        <p id="host-card-status" class="card-status won" role="status"></p>
+        <div class="card">
+          <div id="host-board" class="board" role="group" aria-label="บัตรที่ชนะ"></div>
+        </div>
+      </div>
       <div class="audio-options">
         <label><input type="checkbox" id="voice"> อ่านเลขอัตโนมัติ</label>
         <button type="button" class="text-button" id="repeat">อ่านเลขล่าสุด</button>
@@ -71,6 +76,7 @@
       </section>
     </section>
     <footer>
+      <button type="button" class="text-button" id="test-sound">ทดสอบเสียงวางหมาก</button>
       <p id="storage-status">บันทึกการเล่นบนอุปกรณ์นี้โดยอัตโนมัติ</p>
       <details>
         <summary>วิธีเล่นและติดตั้ง</summary>

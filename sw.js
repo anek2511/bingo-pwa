@@ -1,7 +1,7 @@
 'use strict';
 
 const cachePrefix = 'bingo75-' + self.registration.scope + '-';
-const cacheName = cachePrefix + 'v2';
+const cacheName = cachePrefix + 'v3';
 const appFiles = ['./index.html', './style.css', './app.js', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './mark.wav', './bingo.wav'];
 const appURLs = new Set(appFiles.map(file => new URL(file, self.registration.scope).href));
@@ -24,7 +24,7 @@ self.addEventListener('activate', event => {
 
 self.addEventListener('fetch', event => {
   const { request } = event;
-  if (request.method !== 'GET') return;
+  if (request.method !== 'GET' || request.headers.has('range')) return;
   const url = new URL(request.url);
   url.search = '';
   const entry = new URL('./index.html', self.registration.scope).href;

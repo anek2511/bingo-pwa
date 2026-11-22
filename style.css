@@ -60,10 +60,16 @@ h1 { margin: 0 0 4px; font-size: clamp(1.75rem, 5vw, 2.25rem); line-height: 1.25
   font: 800 clamp(1.2rem, 5.9vw, 2.25rem)/1 Arial, sans-serif;
   font-variant-numeric: tabular-nums;
 }
-.cell[aria-pressed="true"], .cell.free { background: #ffe0e4; color: var(--deep); }
-.cell[aria-pressed="true"]::after { content: "✓"; position: absolute; top: 3px; right: 3px; font-size: .73rem; }
+.cell.marked, .cell.free { background: #ffe0e4; color: var(--deep); }
+.cell.marked::after { content: "✓"; position: absolute; top: 3px; right: 3px; font-size: .73rem; }
 .cell.free { font-size: clamp(.68rem, 3.7vw, 1.15rem); letter-spacing: .05em; }
 .cell.winning { background: #ffdb8e; color: #552b06; border-color: #744213; }
+@keyframes winning-pulse {
+  50% { background: #fff8d5; box-shadow: inset 0 0 0 3px #ffad29; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .cell.winning { animation: winning-pulse .85s ease-in-out 6; }
+}
 .card-status { text-align: center; color: var(--muted); margin: 17px 0 12px; min-height: 1.5em; }
 .card-status.won { color: var(--deep); font-weight: 850; }
 .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }

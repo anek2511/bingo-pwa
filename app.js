@@ -7,16 +7,21 @@ const ballCount = 75;
 const columnSize = 15;
 const storageKey = 'bingo75-v1';
 const positions = Array.from({ length: size }, (_, index) => index);
-const lines = [
+const patterns = [
   ...positions.map(row => positions.map(col => row * size + col)),
   ...positions.map(col => positions.map(row => row * size + col)),
   positions.map(index => index * (size + 1)),
-  positions.map(index => (index + 1) * (size - 1))
+  positions.map(index => (index + 1) * (size - 1)),
+  [0, 4, 20, 24], // Outer corners
+  [6, 8, 16, 18] // Inner corners
 ];
 const byId = id => document.getElementById(id);
 const synth = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
   ? window.speechSynthesis
   : null;
+const markSound = new Audio('./mark.wav');
+const bingoSound = new Audio('./bingo.wav');
+markSound.preload = bingoSound.preload = 'auto';
 let speechRequest = 0;
 let storageAvailable = true;
 
@@ -68,7 +73,8 @@ function loadState() {
       ? [...new Set(data.draws.filter(n => Number.isInteger(n) && n >= 1 && n <= ballCount))]
       : [],
     mode: data.mode === 'host' ? 'host' : 'player',
-    voice: data.voice === true
+    voice: data.voice === true,
+    announcedBingo: data.announcedBingo === true
   };
 }
 
@@ -110,9 +116,8 @@ function renderBoard() {
     cell.textContent = number;
     cell.setAttribute('aria-label', letters[index % size] + ' ' + number);
     cell.addEventListener('click', () => {
-      if (state.marks.has(index)) state.marks.delete(index);
-      else state.marks.add(index);
-      renderMarks();
+      if (state.marks.delete(index)) renderMarks();
+      else markCell(index);
       save();
     });
     return cell;
@@ -122,18 +127,33 @@ function renderBoard() {
 }
 
 function renderMarks() {
-  const wins = lines.filter(line => line.every(index => index === freeIndex || state.marks.has(index)));
+  const wins = patterns.filter(line => line.every(index => index === freeIndex || state.marks.has(index)));
   const winningCells = new Set(wins.flat());
   Array.from(byId('board').children).forEach((cell, index) => {
     if (index !== freeIndex) cell.setAttribute('aria-pressed', state.marks.has(index));
     cell.classList.toggle('winning', winningCells.has(index));
   });
+  const won = wins.length > 0;
   const status = byId('card-status');
-  status.classList.toggle('won', wins.length > 0);
-  status.textContent = wins.length
-    ? 'BINGO! ครบ ' + wins.length + ' แนว'
+  const hostStatus = byId('host-card-status');
+  status.classList.toggle('won', won);
+  hostStatus.hidden = !won;
+  const message = won ? 'BINGO!'
     : 'ทำเครื่องหมายแล้ว ' + (state.marks.size + 1) + ' จาก 25 ช่อง (รวม FREE)';
+  if (status.textContent !== message) status.textContent = message;
+  hostStatus.textContent = won ? message : '';
   byId('clear-marks').disabled = state.marks.size === 0;
+  return won;
+}
+
+function markCell(index) {
+  if (state.marks.has(index)) return;
+  state.marks.add(index);
+  const announce = renderMarks() && !state.announcedBingo;
+  if (announce) state.announcedBingo = true;
+  const sound = announce ? bingoSound : markSound;
+  sound.currentTime = 0;
+  void sound.play().catch(() => {});
 }
 
 function letterIndex(number) {
@@ -147,6 +167,9 @@ function ballLabel(number) {
 function renderHost() {
   const count = state.draws.length;
   byId('latest').textContent = count ? ballLabel(state.draws[count - 1]) : '—';
+  byId('player-latest').textContent = byId('latest').textContent;
+  byId('player-draw').disabled = count === ballCount;
+  byId('player-draw').textContent = count === ballCount ? 'สุ่มครบ 75 ลูกแล้ว' : 'สุ่มเลขถัดไป';
   byId('draw-count').textContent = 'ออกแล้ว ' + count + ' / 75 ลูก';
   byId('draw').disabled = count === ballCount;
   byId('draw').textContent = count === ballCount ? 'สุ่มครบ 75 ลูกแล้ว' : 'สุ่มเลขถัดไป';
@@ -218,6 +241,7 @@ byId('new-card').addEventListener('click', () => {
   if (state.marks.size && !window.confirm('สุ่มบัตรใหม่และล้างเครื่องหมายบนบัตรเดิมหรือไม่?')) return;
   state.card = newCard();
   state.marks.clear();
+  state.announcedBingo = false;
   renderBoard();
   save();
 });
@@ -225,25 +249,34 @@ byId('new-card').addEventListener('click', () => {
 byId('clear-marks').addEventListener('click', () => {
   if (!window.confirm('ล้างเครื่องหมายทั้งหมดบนบัตรนี้หรือไม่?')) return;
   state.marks.clear();
+  state.announcedBingo = false;
   renderMarks();
   byId('new-card').focus();
   save();
 });
 
-byId('draw').addEventListener('click', () => {
+function drawNext() {
   const drawn = new Set(state.draws);
   const available = Array.from({ length: ballCount }, (_, i) => i + 1).filter(n => !drawn.has(n));
   if (available.length === 0) return;
   const number = available[Math.floor(Math.random() * available.length)];
   state.draws.push(number);
   renderHost();
+  const index = state.card.indexOf(number);
+  if (index !== -1) markCell(index);
   save();
   if (state.voice) speak(number);
-});
+}
+
+byId('draw').addEventListener('click', drawNext);
+byId('player-draw').addEventListener('click', drawNext);
 
 byId('reset-draw').addEventListener('click', () => {
-  if (!window.confirm('เริ่มรอบใหม่และล้างประวัติเลขที่สุ่มแล้วหรือไม่?')) return;
+  if (!window.confirm('เริ่มรอบใหม่และล้างประวัติการสุ่มกับเครื่องหมายบนบัตรหรือไม่?')) return;
   state.draws = [];
+  state.marks.clear();
+  state.announcedBingo = false;
+  renderMarks();
   stopSpeech();
   if (synth) voiceStatus('');
   renderHost();

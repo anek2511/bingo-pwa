@@ -28,8 +28,12 @@
     <section id="player" aria-labelledby="player-title">
       <header class="section-head">
         <h1 id="player-title">บัตรบิงโก</h1>
-        <p>แตะเลขที่ถูกเรียก ให้ครบ 5 ช่องในแนวเดียวกัน</p>
+        <p>สุ่มเลขให้ระบบวางหมากบนบัตร หรือแตะเลขที่ผู้ดำเนินเกมประกาศ</p>
       </header>
+      <div class="actions">
+        <button type="button" class="primary" id="player-draw">สุ่มเลขถัดไป</button>
+        <span>เลขล่าสุด <output id="player-latest" aria-live="polite">—</output></span>
+      </div>
       <div class="card">
         <div class="letters" aria-hidden="true"><span>B</span><span>I</span><span>N</span><span>G</span><span>O</span></div>
         <div id="board" class="board" role="group" aria-label="บัตรบิงโก 5 คูณ 5"></div>
@@ -54,6 +58,7 @@
         <button type="button" class="primary" id="draw">สุ่มเลขถัดไป</button>
         <button type="button" class="secondary" id="reset-draw">เริ่มรอบใหม่</button>
       </div>
+      <p id="host-card-status" class="card-status won" role="status" hidden></p>
       <div class="audio-options">
         <label><input type="checkbox" id="voice"> อ่านเลขอัตโนมัติ</label>
         <button type="button" class="text-button" id="repeat">อ่านเลขล่าสุด</button>
@@ -69,7 +74,7 @@
       <p id="storage-status">บันทึกการเล่นบนอุปกรณ์นี้โดยอัตโนมัติ</p>
       <details>
         <summary>วิธีเล่นและติดตั้ง</summary>
-        <p>ผู้เล่นแตะเลขเพื่อทำหรือลบเครื่องหมาย ช่อง FREE นับให้ทันที เมื่อครบแถว คอลัมน์ หรือแนวทแยง ระบบจะแจ้ง BINGO</p>
+        <p>ผู้เล่นแตะเลขเพื่อทำหรือลบเครื่องหมาย ช่อง FREE นับให้ทันที เมื่อครบ 5 ช่องในแนวนอน แนวตั้ง แนวทแยง หรือครบสี่มุมด้านในหรือด้านนอก ระบบจะแจ้ง BINGO พร้อมไฮไลต์ช่องที่ชนะ</p>
         <p>ผู้ดำเนินเกมใช้เครื่องเดียวสุ่มเลขและประกาศให้ทุกคน ผู้เล่นเปิดบัตรบนเครื่องของตนแล้วแตะเลขตามที่ได้ยิน</p>
         <p>จากลิงก์ HTTPS บน iPhone หรือ iPad ให้เปิดใน Safari แล้วเลือก แชร์ → เพิ่มไปยังหน้าจอโฮม → เปิดเป็นเว็บแอป (ถ้ามี) → เพิ่ม บน Android ให้เปิดใน Chrome แล้วเลือก ⋮ → เพิ่มลงในหน้าจอหลัก → ติดตั้ง</p>
       </details>

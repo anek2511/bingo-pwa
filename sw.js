@@ -1,9 +1,9 @@
 'use strict';
 
 const cachePrefix = 'bingo75-' + self.registration.scope + '-';
-const cacheName = cachePrefix + 'v1';
+const cacheName = cachePrefix + 'v2';
 const appFiles = ['./index.html', './style.css', './app.js', './manifest.webmanifest',
-  './icon-192.png', './icon-512.png'];
+  './icon-192.png', './icon-512.png', './mark.wav', './bingo.wav'];
 const appURLs = new Set(appFiles.map(file => new URL(file, self.registration.scope).href));
 
 self.addEventListener('install', event => {

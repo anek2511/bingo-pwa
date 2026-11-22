@@ -20,10 +20,13 @@ const synth = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in windo
   ? window.speechSynthesis
   : null;
 const AudioContext = window.AudioContext || window.webkitAudioContext;
-const bingoSound = new Audio('./bingo.wav');
-bingoSound.preload = 'auto';
+const sounds = Object.fromEntries(['mark', 'bingo'].map(name => {
+  const url = './' + name + '.wav';
+  const element = new Audio(url);
+  element.preload = 'auto';
+  return [name, { url, element, buffer: null }];
+}));
 let audioContext;
-let bingoBuffer;
 let speechRequest = 0;
 let storageAvailable = true;
 
@@ -166,53 +169,36 @@ function prepareAudio() {
     } catch {
       return;
     }
-    bingoBuffer = fetch('./bingo.wav')
-      .then(response => {
-        if (!response.ok) throw new Error('Bingo audio unavailable');
-        return response.arrayBuffer();
-      })
-      .then(bytes => audioContext.decodeAudioData(bytes))
-      .catch(() => null);
+    for (const sound of Object.values(sounds)) {
+      fetch(sound.url)
+        .then(response => {
+          if (!response.ok) throw new Error('Game audio unavailable');
+          return response.arrayBuffer();
+        })
+        .then(bytes => audioContext.decodeAudioData(bytes))
+        .then(buffer => { sound.buffer = buffer; })
+        .catch(() => {});
+    }
   }
-  return audioContext.resume().then(() => audioContext.state === 'running', () => false);
+  if (audioContext.state !== 'running') {
+    void audioContext.resume().catch(() => {});
+  }
 }
 
-function playTap() {
-  const start = audioContext.currentTime;
-  const envelope = audioContext.createGain();
-  envelope.gain.setValueAtTime(0.001, start);
-  envelope.gain.exponentialRampToValueAtTime(0.42, start + 0.003);
-  envelope.gain.exponentialRampToValueAtTime(0.001, start + 0.17);
-  envelope.connect(audioContext.destination);
-  const oscillator = audioContext.createOscillator();
-  oscillator.type = 'triangle';
-  oscillator.frequency.setValueAtTime(620, start);
-  oscillator.frequency.exponentialRampToValueAtTime(170, start + 0.15);
-  oscillator.connect(envelope);
-  oscillator.start(start);
-  oscillator.stop(start + 0.18);
-}
-
-function playGameSound(announce = false, ready = prepareAudio()) {
-  if (!ready) {
-    const sound = announce ? bingoSound : new Audio('./mark.wav');
-    sound.currentTime = 0;
-    void sound.play().catch(() => {});
+function playGameSound(announce = false) {
+  prepareAudio();
+  const sound = sounds[announce ? 'bingo' : 'mark'];
+  if (audioContext?.state === 'running' && sound.buffer) {
+    const source = audioContext.createBufferSource();
+    source.buffer = sound.buffer;
+    source.connect(audioContext.destination);
+    source.start();
     return;
   }
-  void ready.then(async running => {
-    if (running) {
-      playTap();
-      if (!announce) return;
-      const buffer = await bingoBuffer;
-      if (buffer) {
-        const source = audioContext.createBufferSource();
-        source.buffer = buffer;
-        source.connect(audioContext.destination);
-        source.start(audioContext.currentTime + 0.16, 0.2);
-        return;
-      }
-    }
+
+  // Start media within the tap so playback can work before Web Audio is ready.
+  sound.element.currentTime = 0;
+  void sound.element.play().catch(() => {
     if (announce && synth) {
       const utterance = new SpeechSynthesisUtterance('บิงโก');
       utterance.lang = 'th-TH';
@@ -221,15 +207,15 @@ function playGameSound(announce = false, ready = prepareAudio()) {
   });
 }
 
-function markCell(index, ready) {
-  if (state.marks.has(index)) {
-    playGameSound(false, ready);
-    return false;
-  }
+function markCell(index) {
+  const alreadyMarked = state.marks.has(index);
   state.marks.add(index);
-  const announce = renderMarks() && !state.announcedBingo;
-  if (announce) state.announcedBingo = true;
-  playGameSound(announce, ready);
+  const announce = !alreadyMarked && renderMarks() && !state.announcedBingo;
+  if (announce) {
+    state.announcedBingo = true;
+    stopSpeech();
+  }
+  playGameSound(announce);
   return announce;
 }
 
@@ -333,7 +319,7 @@ byId('clear-marks').addEventListener('click', () => {
 });
 
 function drawNext() {
-  const ready = prepareAudio();
+  prepareAudio();
   const drawn = new Set(state.draws);
   const available = Array.from({ length: ballCount }, (_, i) => i + 1).filter(n => !drawn.has(n));
   if (available.length === 0) return;
@@ -341,10 +327,9 @@ function drawNext() {
   state.draws.push(number);
   renderHost();
   const index = state.card.indexOf(number);
-  const announce = index !== -1 && markCell(index, ready);
+  const announce = index !== -1 && markCell(index);
   save();
-  if (announce) stopSpeech();
-  else if (state.voice) speak(number);
+  if (!announce && state.voice) speak(number);
 }
 
 byId('draw').addEventListener('click', drawNext);
